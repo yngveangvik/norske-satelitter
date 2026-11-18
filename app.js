@@ -5,6 +5,9 @@ const fleet = [
  [48272,'NorSat-3','LEO','Skipsovervåking og radardeteksjon'],
  [68454,'AISSat-4','LEO','Skipsovervåking for Kystverket'],
  [68490,'Mimir-1','LEO','Teknologiutprøving for Space Norway'],
+ [100610,'FramSat-1','LEO','Studentsatellitt · tester solsensor'],
+ [-1,'HYPSO-1','LEO','Havobservasjon · banedata utilgjengelige'],
+ [-2,'SelfieSat','LEO','Studentsatellitt · brant opp i 2024'],
  [60531,'HYPSO-2','LEO','Havobservasjon for NTNU'],
  [55015,'Birkeland','LEO','Norsk-nederlandsk radardeteksjon'],
  [55093,'Huygens','LEO','Norsk-nederlandsk radardeteksjon'],
@@ -14,6 +17,27 @@ const fleet = [
  [36033,'THOR 6','GEO','TV og datakommunikasjon'],
  [40613,'THOR 7','GEO','TV og bredbånd']
 ].map(([id,name,type,mission])=>({id,name,type,mission}));
+
+const ownership = {};
+const nationalSource='https://romdirektoratet.no/satellitter-infrastruktur-og-statlige-romaktoerer';
+for(const id of [62702,42826,42828,48272,68454]){
+ ownership[id]={owner:[62702,42826].includes(id)?'Direktoratet for romvirksomhet':'Kystverket',operator:'Statsat (Space Norway)',source:nationalSource};
+}
+ownership[68454].source='https://www.kystverket.no/nyheter/2024/ny-satellitt-for-havovervakning-bygges-pa-rekordtid/';
+for(const id of [68490,60422,60423,32487,36033,40613]){
+ ownership[id]={owner:'Space Norway',operator:'Space Norway',source:'https://spacenorway.com/infrastructure/satellite-fleet/'};
+}
+ownership[68490].source='https://spacenorway.com/projects/our-projects/mimir/';
+for(const id of [55015,55093]){
+ ownership[id]={owner:'FFI / Nederlands forsvarsdepartement (50/50)',operator:'Norsk drift · norske/nederlandske oppdrag',source:'https://www.ffi.no/forskning/prosjekter/milspace2'};
+}
+for(const id of [-1,60531]){
+ ownership[id]={owner:'NTNU',operator:'NTNU SmallSat Lab',source:'https://www.ntnu.edu/smallsat'};
+}
+for(const id of [100610,-2]){
+ ownership[id]={owner:'Orbit NTNU',operator:'Orbit NTNU',source:id===100610?'https://orbitntnu.com/projects/FramSat-1':'https://nyheter.ntnu.no/ntnu-satelitt-brant-opp-i-atmosfaeren/'};
+}
+
 const colors={LEO:'#a2a2ed',HEO:'#7de0ff',GEO:'#eef1fe'};
 const types={LEO:'Lav jordbane',HEO:'Høyelliptisk bane',GEO:'Geostasjonær bane'};
 const $=id=>document.getElementById(id);
@@ -141,7 +165,7 @@ function renderList(){
   const b=document.createElement('button');
   b.className='sat';b.style.setProperty('--dot',colors[sat.type]);b.setAttribute('aria-pressed',sat===active);
   b.innerHTML='<b aria-hidden="true"></b><span></span><small></small>';
-  b.children[1].textContent=sat.name;b.children[2].textContent=sat.type;
+  b.children[1].textContent=sat.name;b.children[2].textContent=sat.id===-2?'Avsluttet':sat.id===-1?'Uten bane':sat.type;
   b.onclick=()=>focusSatellite(sat);
   $('list').append(b);
  }
@@ -149,25 +173,32 @@ function renderList(){
 let portraitId;
 function describe(){
  $('facts').hidden=!active;
- for(const id of ['coverage','pass-mode','follow','track'])$(id).disabled=!active;
+ for(const id of ['coverage','pass-mode','follow','track'])$(id).disabled=!active||active.id<0;
  if(!active)return;
  if (portraitId !== active.id) {
   portraitId = active.id;
   const photo = portraits[active.id];
   $('portrait').hidden = !photo;
+  $('sat-credit').hidden = !photo;
   if (photo) {
    $('sat-image').src = 'media/' + photo.file + '.webp';
    $('sat-image').alt = photo.alt || active.name;
    $('sat-credit').href = photo.source;
-   $('sat-credit').textContent = photo.credit;
+   $('sat-credit').title = photo.credit;
+   $('sat-credit').setAttribute('aria-label',photo.credit);
   }
  }
- $('type').textContent=types[active.type];
+ const org=ownership[active.id];
+ $('owner').textContent=org.owner;
+ $('operator').textContent=org.operator;
+ $('ownership-source').href=org.source;
+ $('owner-label').textContent=org.owner===org.operator?'Eier og operatør':'Eier';
+ $('operator-row').hidden=org.owner===org.operator;
  $('name').textContent=active.name;
  $('mission').textContent=active.mission;
  $('inc').textContent=active.omm?fmt(active.omm.INCLINATION,2)+'°':'–';
  $('period').textContent=active.omm?fmt(1440/active.omm.MEAN_MOTION,1)+' min':'–';
- $('epoch').textContent=active.omm?'Banedata: '+epoch(active).toLocaleString('nb-NO',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'Banedata utilgjengelig';
+ $('epoch').textContent=active.omm?'Bane '+epoch(active).toLocaleString('nb-NO',{timeZone:'UTC',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' UTC':'Banedata utilgjengelig';
 }
 function clearSatellite(){
  releaseFollow();
@@ -305,6 +336,7 @@ let followGap=.30;
 function focusSatellite(sat){
  setMenu(false);
  select(sat);
+ if(sat.id<0){configureView('');return;}
  configureView('follow');
  followGap=sat.type==='LEO' ? .30 : .85;
 }
@@ -391,7 +423,7 @@ function accept(rows){
  }
  describe();orbitDirty=true;
 }
-const refreshKey='norway-orbits-v1';
+const refreshKey='norway-orbits-v2';
 async function init(){
  try{accept(await (await fetch('orbits.json')).json());}catch{}
  let cached;
@@ -400,7 +432,7 @@ async function init(){
  const initial=fleet.map(s=>s.omm).filter(Boolean);
  const attempt=Date.now();
  try{localStorage.setItem(refreshKey,JSON.stringify({attempt,rows:initial}));}catch{}
- const rows=(await Promise.allSettled(fleet.map(async sat=>{
+ const rows=(await Promise.allSettled(fleet.filter(s=>s.id>0).map(async sat=>{
   const response=await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR='+sat.id+'&FORMAT=JSON',{signal:AbortSignal.timeout(9000)});
   if(!response.ok)throw new Error('Banedata utilgjengelig');
   return response.json();

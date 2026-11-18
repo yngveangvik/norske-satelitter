@@ -151,3 +151,37 @@ button:disabled{opacity:.45;cursor:default}
  #explore-tools button{font-size:12px}
  .status{font-size:10px;padding:6px 8px;max-width:calc(100% - 65px)}
 }
+
+#organizations{grid-column:1/-1;margin-top:10px;font-size:12px}#organizations summary{cursor:pointer;color:#2c2754}#facts #organizations dl{display:block;margin:8px 0}#organizations dd{font-size:12px;font-weight:400;line-height:1.4;margin:3px 0 8px}#organizations a{color:#2c2754}
+
+/* Compact information card shared by desktop and mobile. */
+#facts{display:block;width:330px;max-height:none;overflow:visible;padding:14px;box-shadow:none}
+#facts[hidden]{display:none}
+#facts .fact-heading{display:flex;align-items:center;gap:12px;padding-right:32px}
+#facts #portrait{display:block;flex:0 0 52px;margin:0}
+#facts #portrait[hidden]{display:none}
+#facts #portrait img{width:52px;height:52px}
+#facts h2{font-size:23px;margin:0 0 3px;line-height:1.1}
+#facts #mission{font-size:12px;line-height:1.3;margin:0}
+#facts #organizations{display:block;margin:12px 0;font-size:12px}
+#facts #organizations>div{display:flex;align-items:baseline;gap:7px;margin:3px 0}
+#facts #organizations>div[hidden]{display:none}
+#facts #organizations dt{font-size:11px;flex:none}
+#facts #organizations dd{font-size:12px;line-height:1.3;margin:0;font-weight:400;overflow-wrap:anywhere}
+#facts #metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:0}
+#facts #metrics dt{font-size:10px}
+#facts #metrics dd{font-size:13px;white-space:nowrap;margin:4px 0 0}
+#facts .fact-footnote{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 10px;font-size:10px;line-height:1.4;margin-top:10px;color:#515151}
+#facts #epoch{margin:0;font-size:10px}
+#facts .fact-footnote a{color:#2c2754;text-underline-offset:2px}
+#facts #close-facts{width:40px;height:40px;top:3px;right:3px}
+@media(min-width:721px) and (orientation:landscape){#explore{right:370px}}
+@media (max-width:720px), (orientation:portrait) and (max-width:1024px){
+ #facts{display:block;grid-area:2/1;width:auto;margin:0;padding:12px;max-height:none;overflow:visible}
+ #facts .fact-heading{gap:10px}
+ #facts #organizations{margin:9px 0}
+ #facts .fact-footnote{margin-top:8px}
+}
+@media(max-width:359px){
+ #facts #metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}
+}
