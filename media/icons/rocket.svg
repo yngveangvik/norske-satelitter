@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Rocket--Streamline-Sharp" xmlns="http://www.w3.org/2000/svg" width="5cm" height="5cm" viewBox="0 0 141.73228 141.73228">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #fff;
+        stroke-width: 4px;
+      }
+    </style>
+  </defs>
+  <g id="rocket--science-space-universe-rocket">
+    <path id="Vector_2965" data-name="Vector 2965" class="cls-1" d="M97.93307,110.3458h-54.13385V36.79987l27.06693-27.06693,27.06693,27.06693s0,73.54594,0,73.54594Z"/>
+    <path id="Vector_2979" data-name="Vector 2979" class="cls-1" d="M70.86614,45.38517v10.82677"/>
+    <path id="Vector_2982" data-name="Vector 2982" class="cls-1" d="M70.86614,88.69226v43.30709"/>
+    <path id="Vector_2980" data-name="Vector 2980" class="cls-1" d="M16.73229,80.56081l27.06693-13.52209v43.30709l-27.06693,13.5221s0-43.30709,0-43.30709Z"/>
+    <path id="Vector_2983" data-name="Vector 2983" class="cls-1" d="M125,80.56081l-27.06693-13.52209v43.30709l27.06693,13.5221v-43.30709Z"/>
+  </g>
+</svg>

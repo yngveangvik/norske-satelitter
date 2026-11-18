@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Earth-1--Streamline-Sharp" xmlns="http://www.w3.org/2000/svg" width="5cm" height="5cm" viewBox="0 0 141.73228 141.73228">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #fff;
+        stroke-width: 4px;
+      }
+    </style>
+  </defs>
+  <g id="earth-1--planet-earth-globe-world">
+    <path id="Vector" class="cls-1" d="M70.86614,130.41338c32.88686,0,59.54724-26.66038,59.54724-59.54724S103.753,11.3189,70.86614,11.3189c-32.88702,0-59.54724,26.66022-59.54724,59.54724s26.66022,59.54724,59.54724,59.54724Z"/>
+    <path id="Intersect" class="cls-1" d="M15.4681,92.74813h12.09096c8.96917,0,16.24016-7.27072,16.24016-16.24016v-21.88264h21.65354c8.96944,0,16.24016-7.27093,16.24016-16.24016V12.30072"/>
+    <path id="Intersect_2" data-name="Intersect 2" class="cls-1" d="M129.4314,81.69237h-32.42726c-8.45625,0-15.31122,6.85497-15.31122,15.31122,0,4.06112,1.61319,7.95551,4.48445,10.82677l14.55984,14.55984"/>
+  </g>
+</svg>
