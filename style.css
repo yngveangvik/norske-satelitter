@@ -128,3 +128,26 @@ button:disabled{opacity:.45;cursor:default}
  #stage .timebar button,#stage .timebar select{padding-inline:5px}
  .timebar time{font-size:9px}
 }
+
+@media (max-width:720px), (orientation:portrait) and (max-width:1024px){
+ #stage{grid-template-rows:minmax(0,1fr) auto}
+ #facts{grid-area:2/1;justify-self:stretch;align-self:stretch;width:auto;max-height:29dvh;margin:0;padding:12px 48px 12px 12px;overflow:auto;display:grid;grid-template-columns:54px 1fr;column-gap:12px}
+ #facts[hidden]{display:none}
+ #portrait{grid-column:1;grid-row:1/5;margin:0}
+ #portrait img{width:50px;height:50px}
+ #portrait figcaption{font-size:8px}
+ #facts .eyebrow,#facts h2,#facts #mission{grid-column:2}
+ #facts h2{font-size:22px;margin:3px 0}
+ #facts #mission{font-size:11px}
+ #facts dl{grid-column:1/-1;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 0}
+ #facts dd{font-size:12px}
+ #epoch{grid-column:1/-1;margin-top:6px}
+ #explore{top:8px;right:8px;bottom:auto}
+ #explore-toggle{font-size:22px;min-width:44px;background:#000c}
+ #explore-tools{top:calc(100% + 6px);bottom:auto;max-height:65dvh;width:min(330px,calc(100vw - 16px));padding:12px}
+ #explore-tools .view-controls,#explore-tools .timebar{display:flex;position:static;flex-wrap:wrap;justify-content:flex-start;padding:6px 0;max-width:100%}
+ #explore-tools .timebar time{width:100%;font-size:11px}
+ #explore-tools .explore-buttons{display:grid;grid-template-columns:1fr 1fr;width:100%}
+ #explore-tools button{font-size:12px}
+ .status{font-size:10px;padding:6px 8px;max-width:calc(100% - 65px)}
+}

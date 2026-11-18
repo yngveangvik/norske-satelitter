@@ -173,6 +173,7 @@ function clearSatellite(){
  releaseFollow();
  active=null;
  configureView('',true);
+ norwayFocus=false;lon=.24;lat=1.12;target=Math.max(3.6,3.4/Math.max(.45,camera.aspect));
  track=false;
  $('track').setAttribute('aria-pressed','false');
  renderList();

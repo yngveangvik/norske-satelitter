@@ -60,6 +60,16 @@ function initializeExploration() {
  const menu=$('menu-toggle');
  menu.onclick=()=>setMenu(menu.getAttribute('aria-expanded')==='false');
  const explore=$('explore-toggle');
+ const mobileLayout=matchMedia('(max-width:720px), (orientation:portrait) and (max-width:1024px)');
+ const controls=document.querySelector('.view-controls');
+ const timebar=document.querySelector('.timebar');
+ const stage=$('stage');
+ function arrangeControls(){
+  const parent=mobileLayout.matches?$('explore-tools'):stage;
+  parent.append(controls,timebar);
+ }
+ mobileLayout.addEventListener('change',arrangeControls);
+ arrangeControls();
  explore.onclick=()=>explore.setAttribute('aria-expanded',explore.getAttribute('aria-expanded')==='false');
  document.addEventListener('keydown',event=>{
   if(event.key!=='Escape')return;
