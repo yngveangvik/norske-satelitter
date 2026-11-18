@@ -20,7 +20,7 @@ function extraSatellites() {
  const ids = viewMode==='compare' ? comparison : viewMode==='arctic' ? arcticPair : null;
  return ids ? ids.map(id=>fleet.find(s=>s.id===id)) : null;
 }
-function configureView(mode) {
+function configureView(mode, keepCamera=false) {
  viewMode=mode;
  if(mode==='follow')followGap=active.type==='LEO'?.30:.85;
  norwayFocus=false;
@@ -40,8 +40,8 @@ function configureView(mode) {
  } else if (mode) {
   target=active.type==='LEO'?3.6:Math.max(22,22/Math.max(.54,camera.aspect));
   if(mode==='pass-mode') centerPlace(false);
- } else {
-  target=active.type==='LEO'?3.6:Math.max(22,22/Math.max(.54,camera.aspect));
+ } else if(!keepCamera) {
+  target=!active||active.type==='LEO'?3.6:Math.max(22,22/Math.max(.54,camera.aspect));
  }
  explainView();
 }
@@ -49,14 +49,24 @@ function centerPlace(close) {
  const [,a,b]=close?['Norge',63.8,11.5]:places[Number($('observer').value)];
  lon=b*radians;lat=a*radians;target=close?1.52:3.6;norwayFocus=close;
 }
+function setMenu(open){
+ const menu=$('menu-toggle');
+ $('layout').classList.toggle('menu-closed',!open);
+ $('satellittmeny').inert=!open;
+ menu.setAttribute('aria-expanded',open);
+ menu.textContent=open?'Skjul satellitter':'Vis satellitter';
+}
 function initializeExploration() {
- const menu=$('menu-toggle'), aside=$('satellittmeny');
- menu.onclick=()=>{
-  const closed=$('layout').classList.toggle('menu-closed');
-  aside.inert=closed;
-  menu.setAttribute('aria-expanded',!closed);
-  menu.textContent=closed?'Vis satellitter':'Skjul satellitter';
- };
+ const menu=$('menu-toggle');
+ menu.onclick=()=>setMenu(menu.getAttribute('aria-expanded')==='false');
+ const explore=$('explore-toggle');
+ explore.onclick=()=>explore.setAttribute('aria-expanded',explore.getAttribute('aria-expanded')==='false');
+ document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  if(menu.getAttribute('aria-expanded')==='true'){setMenu(false);menu.focus();}
+  else if(explore.getAttribute('aria-expanded')==='true'){explore.setAttribute('aria-expanded','false');explore.focus();}
+  else if(active)$('close-facts').click();
+ });
  for(const [id,[name,lat,lon]] of places.entries()) {
   const label=document.createElement('span');
   label.className='place'+(id===0?' spaceport':'');

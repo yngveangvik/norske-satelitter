@@ -17,7 +17,7 @@ const fleet = [
 const colors={LEO:'#a2a2ed',HEO:'#7de0ff',GEO:'#eef1fe'};
 const types={LEO:'Lav jordbane',HEO:'Høyelliptisk bane',GEO:'Geostasjonær bane'};
 const $=id=>document.getElementById(id);
-let active=fleet[0],filter='Alle',time=Date.now(),rate=1,paused=false,track=false;
+let active=null,filter='Alle',time=Date.now(),rate=1,paused=false,track=false;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(37,1,0.01,150);
 const mount=$('scene');
@@ -131,6 +131,12 @@ const fmt=(n, digits=0)=>n.toLocaleString('nb-NO',{minimumFractionDigits:digits,
 const epoch=s=>new Date(/Z$/.test(s.omm.EPOCH)?s.omm.EPOCH:s.omm.EPOCH+'Z');
 function renderList(){
  $('list').replaceChildren();
+ const none=document.createElement('button');
+ none.className='sat none';
+ none.textContent='Ingen';
+ none.setAttribute('aria-pressed',!active);
+ none.onclick=()=>{clearSatellite();setMenu(false);};
+ $('list').append(none);
  for(const sat of fleet.filter(s=>filter==='Alle'||filter===s.type)){
   const b=document.createElement('button');
   b.className='sat';b.style.setProperty('--dot',colors[sat.type]);b.setAttribute('aria-pressed',sat===active);
@@ -142,6 +148,9 @@ function renderList(){
 }
 let portraitId;
 function describe(){
+ $('facts').hidden=!active;
+ for(const id of ['coverage','pass-mode','follow','track'])$(id).disabled=!active;
+ if(!active)return;
  if (portraitId !== active.id) {
   portraitId = active.id;
   const photo = portraits[active.id];
@@ -160,6 +169,17 @@ function describe(){
  $('period').textContent=active.omm?fmt(1440/active.omm.MEAN_MOTION,1)+' min':'–';
  $('epoch').textContent=active.omm?'Banedata: '+epoch(active).toLocaleString('nb-NO',{timeZone:'UTC',dateStyle:'short',timeStyle:'short'})+' UTC':'Banedata utilgjengelig';
 }
+function clearSatellite(){
+ releaseFollow();
+ active=null;
+ configureView('',true);
+ track=false;
+ $('track').setAttribute('aria-pressed','false');
+ renderList();
+ describe();
+}
+$('close-facts').onclick=()=>{clearSatellite();$('menu-toggle').focus({preventScroll:true});};
+
 function select(sat, preserveMode=false){
  if(!preserveMode && extraSatellites() && !extraSatellites().includes(sat))configureView('');
  if(viewMode!=='pass-mode')norwayFocus=false;
@@ -172,11 +192,11 @@ document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{
  if(extraSatellites())configureView('');
  filter=button.dataset.filter;
  document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',b===button));
- if(filter!=='Alle'&&active.type!==filter)select(fleet.find(s=>s.type===filter));
+ if(active&&filter!=='Alle'&&active.type!==filter)clearSatellite();
  else renderList();
 });
 $('track').onclick=()=>{track=!track;$('track').setAttribute('aria-pressed',track);orbitDirty=true;};
-$('reset').onclick=()=>{if(viewMode==='follow')configureView('');norwayFocus=false;lon=.24;lat=1.12;target=active.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));};
+$('reset').onclick=()=>{if(viewMode==='follow')configureView('');norwayFocus=false;lon=.24;lat=1.12;target=!active||active.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));};
 function zoom(factor){
  if(viewMode==='follow'){
   followGap=Math.max(.09,Math.min(10,followGap*factor));
@@ -188,32 +208,57 @@ $('rate').onchange=e=>{rate=Number(e.target.value);};
 $('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Spill av':'Pause';};
 $('now').onclick=()=>{time=Date.now();rate=1;paused=false;orbitDirty=true;$('rate').value='1';$('pause').textContent='Pause';};
 const ray=new THREE.Raycaster();
-let pointer;
-mount.onpointerdown=e=>{if(!renderer||e.button!==0)return;pointer={x:e.clientX,y:e.clientY,moved:0};mount.setPointerCapture(e.pointerId);};
+const pointers=new Map();
+let tap=null;
+function releaseFollow(){
+ if(viewMode!=='follow')return;
+ const radial=camera.position.clone().normalize();
+ configureView('',true);
+ lon=Math.atan2(-radial.z,radial.x);
+ lat=Math.asin(radial.y);
+ target=distance=camera.position.length()||3.6;
+}
+function pinchDistance(){
+ const [a,b]=pointers.values();
+ return Math.hypot(a.x-b.x,a.y-b.y);
+}
+mount.onpointerdown=e=>{
+ if(!renderer||e.button!==0)return;
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ tap=pointers.size===1?{id:e.pointerId,x:e.clientX,y:e.clientY}:null;
+ mount.setPointerCapture(e.pointerId);
+};
 mount.onpointermove=e=>{
- if(!pointer)return;
- const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;
- pointer.moved+=Math.abs(dx)+Math.abs(dy);pointer.x=e.clientX;pointer.y=e.clientY;
- if(pointer.moved>5 && viewMode==='follow'){
-  const radial=camera.position.clone().normalize();
-  configureView('');
-  lon=Math.atan2(-radial.z,radial.x);
-  lat=Math.asin(radial.y);
-  target=distance=camera.position.length();
+ const previous=pointers.get(e.pointerId);
+ if(!previous)return;
+ const before=pointers.size>=2?pinchDistance():0;
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(pointers.size>=2){
+  const after=pinchDistance();
+  if(before>0&&after>0)zoom(before/after);
+  return;
  }
- if(pointer.moved>5)norwayFocus=false;
- lon-=dx*.006;lat=Math.max(-1.55,Math.min(1.55,lat+dy*.006));
+ if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<5)return;
+ tap=null;
+ releaseFollow();
+ norwayFocus=false;
+ lon-=(e.clientX-previous.x)*.006;
+ lat=Math.max(-1.55,Math.min(1.55,lat+(e.clientY-previous.y)*.006));
 };
 mount.onpointerup=e=>{
- if(pointer?.moved<5){
+ if(tap?.id===e.pointerId){
   const rect=mount.getBoundingClientRect();
   ray.setFromCamera({x:(e.clientX-rect.left)/rect.width*2-1,y:1-(e.clientY-rect.top)/rect.height*2},camera);
   const hit=ray.intersectObjects([earth,...fleet.filter(s=>s.marker.visible).map(s=>s.marker)])[0];
   if(hit?.object.userData.sat)focusSatellite(hit.object.userData.sat);
  }
- pointer=null;
+ pointers.delete(e.pointerId);
+ tap=null;
 };
-mount.onpointercancel=()=>{pointer=null;};
+mount.onpointercancel=mount.onlostpointercapture=e=>{
+ pointers.delete(e.pointerId);
+ if(tap?.id===e.pointerId)tap=null;
+};
 mount.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(e.deltaY*.001));},{passive:false});
 function earthVector(xyz){return new THREE.Vector3(xyz.x/6378.137,xyz.z/6378.137,-xyz.y/6378.137);}
 function replaceLine(line,points){
@@ -222,7 +267,7 @@ function replaceLine(line,points){
 }
 function buildPath(sat,date,sidereal,withGround) {
  const orbit=[],surface=[];
- if(!sat.record)return {orbit,surface};
+ if(!sat?.record)return {orbit,surface};
  const duration=86400000/sat.omm.MEAN_MOTION;
  for(let i=0;i<=200;i++){
   const at=new Date(date.getTime()+duration*i/200);
@@ -257,6 +302,7 @@ const cameraStep=new THREE.Quaternion();
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 let followGap=.30;
 function focusSatellite(sat){
+ setMenu(false);
  select(sat);
  configureView('follow');
  followGap=sat.type==='LEO' ? .30 : .85;
@@ -289,7 +335,7 @@ function frame(real){
    $('speed').textContent=state?.velocity?fmt(Math.hypot(state.velocity.x,state.velocity.y,state.velocity.z),2)+' km/s':'–';
   }
  }
- if(viewMode==='follow'&&active.marker.visible){
+ if(viewMode==='follow'&&active?.marker.visible){
   const radius=active.marker.position.length();
   cameraGoal.copy(active.marker.position).setLength(radius+followGap);
   center.copy(active.marker.position).setLength(1);
@@ -319,10 +365,10 @@ function frame(real){
  if(camera.position.length()<2.95)loadDayDetail();
  positionPlaces();
  coverageLimit.value=2;
- if(viewMode==='arctic'||(viewMode==='coverage'&&arcticPair.includes(active.id))){
+ if(viewMode==='arctic'||(viewMode==='coverage'&&arcticPair.includes(active?.id))){
   coverageCenter.set(0,1,0);
   coverageLimit.value=Math.sin(65*radians);
- }else if(viewMode==='coverage'&&aisSatellites.has(active.id)&&active.marker.visible){
+ }else if(viewMode==='coverage'&&aisSatellites.has(active.id)&&active?.marker.visible){
   const elevation=10*radians;
   const radius=active.marker.position.length();
   coverageCenter.copy(active.marker.position).normalize();
@@ -361,4 +407,4 @@ async function init(){
  accept(rows);
  try{localStorage.setItem(refreshKey,JSON.stringify({attempt,rows:fleet.map(s=>s.omm).filter(Boolean)}));}catch{}
 }
-initializeExploration();select(active);resize();init();setInterval(init,7200000);requestAnimationFrame(frame);
+initializeExploration();renderList();describe();resize();init();setInterval(init,7200000);requestAnimationFrame(frame);
