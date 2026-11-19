@@ -250,3 +250,34 @@ button[aria-pressed=true]{background:#a2a2ed;color:#000}
  }
  #header-actions #explore-tools button,#header-actions #explore-tools select{min-height:40px}
 }
+
+/* Ground infrastructure catalog and compact mission metadata. */
+.catalog-tabs{display:flex;gap:5px;padding:0 14px 12px}.catalog-tabs button{flex:1;font-size:13px;min-height:42px;padding:7px}.catalog-tabs [aria-selected=true]{background:#a2a2ed;color:#000}
+#sat-catalog,#station-catalog{min-height:0;overflow:auto;overscroll-behavior:contain}#station-catalog[hidden],#sat-catalog[hidden]{display:none}
+#station-list{padding:0 14px 16px}.station-visibility{display:flex;gap:8px;align-items:center;padding:6px 18px;font-size:14px;min-height:44px}.station-group h3{font-size:14px;color:var(--station-color);margin:18px 4px 6px}.station-row{display:flex;align-items:center;gap:6px}.station-row input{accent-color:var(--station-color);width:18px;height:18px;flex:none}.station-row button{background:transparent;text-align:left;flex:1;min-height:42px;color:var(--station-color);font-size:14px}.station-row button[aria-pressed=true]{background:#2c2754}.station-row button:hover{background:#2c2754}
+.ground-marker{position:absolute;top:0;left:0;pointer-events:auto;padding:0;display:flex;align-items:center;gap:4px;background:transparent!important;color:#fff;white-space:nowrap;font-size:12px;text-shadow:0 1px 4px #000,0 0 5px #000;min-height:24px;translate:-10px -12px;transition:none}.ground-marker[hidden]{display:none}.ground-marker i{display:block;width:18px;height:18px;background:var(--station-color);mask:url(media/icons/antenna.svg) center/contain no-repeat}.ground-marker.icon-only span{display:none}.ground-marker:hover span,.ground-marker:focus-visible span,.ground-marker.selected span{display:inline}.ground-marker.align-left{flex-direction:row-reverse;translate:calc(-100% + 10px) -12px}.ground-marker.selected{background:#000b!important;border-radius:4px}.ground-marker:active{scale:1}
+#facts #metrics[hidden],#facts #launch-details[hidden],#facts #station-details[hidden]{display:none}
+#facts #launch-details{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;margin:12px 0 0}#facts #launch-details dt{font-size:12px}#facts #launch-details dd{font-size:13px;line-height:1.25;font-weight:400;margin:2px 0 0}#launch-details a{text-decoration-color:#a2a2ed;text-underline-offset:2px}
+#facts #station-details{display:block;margin:8px 0 0}#facts #station-details dt{font-size:12px}#facts #station-details dd{font-size:13px;font-weight:400}#facts.station-facts #mission{font-size:13px}#facts.station-facts #portrait{flex-basis:64px}#facts.station-facts #portrait img{width:64px;height:64px}
+@media(max-width:720px),(orientation:portrait) and (max-width:1024px){#stage .ground-marker{min-height:24px;padding:0}#facts #launch-details{gap:5px 12px;margin-top:8px}#facts #launch-details dt{font-size:12px}#facts .fact-footnote{margin-top:6px}#facts #organizations{margin:7px 0}}
+
+#stations-menu{height:44px;white-space:nowrap;background:rgb(44 39 84 / 44%)}#stations-menu[aria-expanded=true]{background:#a2a2ed;color:#000}
+.station-row .sat{display:grid;grid-template-columns:19px 1fr;gap:9px;width:100%;color:#fff;font-size:13px}.station-row .sat b{mask-image:url(media/icons/antenna.svg)}#station-none{margin:0 14px;width:calc(100% - 28px);min-height:44px}#station-none[aria-pressed=true]{background:#2c2754;color:white}
+.welcome-brand{position:relative;display:flex;flex-direction:column;justify-content:center;width:min(350px,84vw);height:min(350px,84vw);padding:50px}.welcome-brand>img{width:220px;max-width:100%}.welcome-orbit{position:absolute;inset:0;border:0;border-radius:50%;animation:welcome-revolution 1.25s linear 1}.welcome-orbit span{position:absolute;top:-12px;left:calc(50% - 12px);width:24px;height:24px}.welcome-orbit span img{width:24px;height:24px;max-width:none}.welcome-brand p{margin-top:18px}@keyframes welcome-revolution{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@media(max-width:720px),(orientation:portrait) and (max-width:1024px){header{flex-wrap:wrap;justify-content:space-between}#header-actions{gap:5px}#header-actions #stations-menu,#header-actions #menu-toggle{height:44px;font-size:12px;padding:0 8px}header .brand img{width:90px}#header-actions #explore-toggle{width:36px}#header-actions #explore-tools{right:0} }
+@media(max-width:400px){header{padding:12px 10px 8px}header .brand{width:100%}header .brand img{width:100px}#header-actions{width:100%;justify-content:flex-end}}
+@media(prefers-reduced-motion:reduce){.welcome-orbit{animation:none}.welcome-orbit span{display:none}}
+
+.layer-actions{display:flex;gap:6px;padding:8px 0 12px}.layer-actions button{flex:1;min-height:40px}.layer-actions #station-none{width:auto;margin:0;min-height:40px}#station-catalog>.layer-actions{padding:8px 14px 12px}.ground-marker.selected{background:transparent!important}.ground-marker.selected i{outline:1px solid var(--station-color);outline-offset:4px;border-radius:50%;mask:none;background:transparent;position:relative}.ground-marker.selected i::after{content:"";position:absolute;inset:0;background:var(--station-color);mask:url(media/icons/antenna.svg) center/contain no-repeat}
+#overview{position:absolute;top:18px;left:50%;transform:translateX(-50%);z-index:3;min-height:40px;background:#2c2754b8}#overview:active{transform:translateX(-50%)}
+@media(max-width:720px),(orientation:portrait) and (max-width:1024px){#overview{top:8px;left:auto;right:8px;transform:none;font-size:12px}#overview:active{transform:none}.status{max-width:calc(100% - 150px)}}
+
+/* Overview travels with the existing responsive controls. */
+#overview,#overview:active{position:static;inset:auto;transform:none;min-height:40px}
+.view-controls{flex-wrap:wrap;justify-content:flex-end;max-width:calc(100% - 40px)}
+#welcome{transition:opacity .25s ease}
+.welcome-trail{position:absolute;inset:0;width:100%;height:100%;overflow:visible;transform:rotate(-90deg);pointer-events:none}
+.welcome-trail circle{fill:none;stroke:#a2a2ed;stroke-opacity:.55;stroke-width:1;stroke-dasharray:100;stroke-dashoffset:100;animation:draw-welcome-orbit 1.25s linear forwards}
+@keyframes draw-welcome-orbit{to{stroke-dashoffset:0}}
+@media(max-width:720px),(orientation:portrait) and (max-width:1024px){.status{max-width:calc(100% - 16px)}}
+@media(prefers-reduced-motion:reduce){#welcome{transition:none}.welcome-trail circle{animation:none;stroke-dashoffset:0}}

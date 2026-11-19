@@ -3,7 +3,8 @@ const places = [
  ['Oslo',59.9139,10.7522],['Bergen',60.3913,5.3221],
  ['Stavanger',58.9700,5.7331],['Kristiansand',58.1467,7.9956],
  ['Ålesund',62.4722,6.1549],['Trondheim',63.4305,10.3951],
- ['Bodø',67.2804,14.4049],['Tromsø',69.6492,18.9553]
+ ['Bodø',67.2804,14.4049],['Tromsø',69.6492,18.9553],
+ ['Kourou',5.2,-52.77]
 ];
 const radians = Math.PI / 180;
 const aisSatellites = new Set([62702,42826,42828,48272,68454]);
@@ -53,12 +54,14 @@ function setMenu(open){
  const menu=$('menu-toggle');
  $('layout').classList.toggle('menu-closed',!open);
  $('satellittmeny').inert=!open;
- menu.setAttribute('aria-expanded',open);
- menu.textContent=open?'Skjul satellitter':'Vis satellitter';
+ const stationMode=$('satellittmeny').dataset.catalog==='stations';
+ menu.setAttribute('aria-expanded',open&&!stationMode);
+ $('stations-menu').setAttribute('aria-expanded',open&&stationMode);
+ menu.textContent=open&&!stationMode?'Lukk satellitter':'Vis satellitter';
 }
 function initializeExploration() {
  const menu=$('menu-toggle');
- menu.onclick=()=>setMenu(menu.getAttribute('aria-expanded')==='false');
+ menu.onclick=()=>{const open=menu.getAttribute('aria-expanded')==='false';switchCatalog('satellites');setMenu(open);};
  const explore=$('explore-toggle');
  const mobileLayout=matchMedia('(max-width:720px), (orientation:portrait) and (max-width:1024px)');
  const controls=document.querySelector('.view-controls');
@@ -76,13 +79,13 @@ function initializeExploration() {
  explore.onclick=()=>explore.setAttribute('aria-expanded',explore.getAttribute('aria-expanded')==='false');
  document.addEventListener('keydown',event=>{
   if(event.key!=='Escape')return;
-  if(menu.getAttribute('aria-expanded')==='true'){setMenu(false);menu.focus();}
+  if(menu.getAttribute('aria-expanded')==='true'||$('stations-menu').getAttribute('aria-expanded')==='true'){setMenu(false);menu.focus();}
   else if(explore.getAttribute('aria-expanded')==='true'){explore.setAttribute('aria-expanded','false');explore.focus();}
-  else if(active)$('close-facts').click();
+  else if(active||activeStation)$('close-facts').click();
  });
  for(const [id,[name,lat,lon]] of places.entries()) {
   const label=document.createElement('span');
-  label.className='place'+(id===0?' spaceport':'');
+  label.className='place'+(id===0||name==='Kourou'?' spaceport':'');
   label.textContent=name;
   $('places').append(label);
   const option=new Option(name,id);
@@ -111,7 +114,7 @@ function positionPlaces() {
  for(const [index,{label,position}] of placeLabels.entries()){
   projected.copy(position).multiplyScalar(1.004).project(camera);
   const x=(projected.x+1)*width/2, y=(1-projected.y)*height/2;
-  const visible=showPlaces&&renderer&&position.dot(camera.position)>1.007&&projected.z<1&&x>3&&x<width-12&&y>0&&y<height&&(index===0||camera.position.length()<2.35);
+  const visible=showPlaces&&renderer&&position.dot(camera.position)>1.007&&projected.z<1&&x>3&&x<width-12&&y>0&&y<height&&(index===0||index===9||camera.position.length()<2.35);
   label.hidden=!visible;
   if(visible) {
    const left = x>width-115 || (norwayFocus && [2,3,5,7].includes(index));

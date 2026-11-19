@@ -130,6 +130,7 @@ scene.add(new THREE.Points(stars,new THREE.PointsMaterial({color:0xb4abde,size:.
 const spriteTexture=textures.load('media/icons/satellite-solid.svg');
 spriteTexture.colorSpace=THREE.SRGBColorSpace;
 for(const sat of fleet){
+ sat.shown=true;
  sat.marker=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTexture,color:colors[sat.type],depthWrite:false,alphaTest:.08}));
  sat.marker.visible=false;
  sat.marker.userData.sat=sat;
@@ -164,12 +165,13 @@ const fmt=(n, digits=0)=>n.toLocaleString('nb-NO',{minimumFractionDigits:digits,
 const epoch=s=>new Date(/Z$/.test(s.omm.EPOCH)?s.omm.EPOCH:s.omm.EPOCH+'Z');
 function renderList(){
  $('list').replaceChildren();
- const none=document.createElement('button');
- none.className='sat none';
- none.textContent='Ingen';
- none.setAttribute('aria-pressed',!active);
- none.onclick=()=>{clearSatellite();setMenu(false);};
- $('list').append(none);
+ const actions=document.createElement('div');actions.className='layer-actions';
+ for(const [label,visible] of [['Vis alle',true],['Vis ingen',false]]){
+  const button=document.createElement('button');button.textContent=label;
+  button.setAttribute('aria-pressed',fleet.every(s=>Boolean(s.shown)!==visible)?'false':String(fleet.every(s=>Boolean(s.shown)===visible)));
+  button.onclick=()=>setSatelliteVisibility(visible);actions.append(button);
+ }
+ $('list').append(actions);
  for(const sat of fleet.filter(s=>filter==='Alle'||filter===s.type)){
   const b=document.createElement('button');
   b.className='sat';b.style.setProperty('--dot',colors[sat.type]);b.setAttribute('aria-pressed',sat===active);
@@ -179,8 +181,16 @@ function renderList(){
   $('list').append(b);
  }
 }
+function setSatelliteVisibility(visible){
+ fleet.forEach(s=>s.shown=visible);
+ if(!visible&&active)clearSatellite(false);
+ orbitDirty=true;renderList();
+}
 let portraitId;
 function describe(){
+ if(activeStation){describeStation();return;}
+ $('facts').classList.remove('station-facts');$('metrics').hidden=false;$('launch-details').hidden=false;$('station-details').hidden=true;
+ $('sat-credit').textContent='Bilde';
  $('facts').hidden=!active;
  for(const id of ['coverage','pass-mode','follow','track'])$(id).disabled=!active||active.id<0;
  if(!active)return;
@@ -197,6 +207,7 @@ function describe(){
    $('sat-credit').setAttribute('aria-label',photo.credit);
   }
  }
+ renderLaunch(active.id);
  const org=ownership[active.id];
  $('owner').textContent=org.owner;
  $('operator').textContent=org.operator;
@@ -209,23 +220,26 @@ function describe(){
  $('period').textContent=active.omm?fmt(1440/active.omm.MEAN_MOTION,1)+' min':'–';
  $('epoch').textContent=active.omm?'Bane '+epoch(active).toLocaleString('nb-NO',{timeZone:'UTC',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' UTC':'Banedata utilgjengelig';
 }
-function clearSatellite(){
+function clearSatellite(resetCamera=true){
+ activeStation=null;portraitId=undefined;updateStationList();
  releaseFollow();
  active=null;
  configureView('',true);
- norwayFocus=false;lon=.24;lat=1.12;target=Math.max(3.6,3.4/Math.max(.45,camera.aspect));
+ if(resetCamera){norwayFocus=false;lon=.24;lat=1.12;target=Math.max(3.6,3.4/Math.max(.45,camera.aspect));}
  track=false;
  $('track').setAttribute('aria-pressed','false');
  renderList();
  describe();
 }
+$('overview').onclick=()=>clearSatellite();
 $('close-facts').onclick=()=>{clearSatellite();$('menu-toggle').focus({preventScroll:true});};
 
 function select(sat, preserveMode=false){
+ activeStation=null;portraitId=undefined;updateStationList();
  if(!preserveMode && extraSatellites() && !extraSatellites().includes(sat))configureView('');
  if(viewMode!=='pass-mode')norwayFocus=false;
  passKey='';
- active=sat;target=sat.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));orbitDirty=true;
+ sat.shown=true;active=sat;target=sat.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));orbitDirty=true;
  if(extraSatellites())target=Math.max(24,24/Math.max(.54,camera.aspect));
  renderList();describe();explainView();
 }
@@ -327,13 +341,13 @@ function buildPath(sat,date,sidereal,withGround) {
 function updatePaths(date,sidereal){
  fleetPaths.forEach((line,index)=>{
   const sat=fleet[index];
-  line.visible=showAllOrbits&&Boolean(sat.record);
+  line.visible=showAllOrbits&&sat.shown&&Boolean(sat.record);
   if(line.visible)replaceLine(line,buildPath(sat,date,sidereal,false).orbit);
  });
  orbitDirty=false;lastPath=time;
  const group=extraSatellites();
  comparisonPaths.forEach((line,i)=>{
-  line.visible=!showAllOrbits&&Boolean(group?.[i]?.record);
+  line.visible=!showAllOrbits&&Boolean(group?.[i]?.record&&group[i].shown);
   if(line.visible)replaceLine(line,buildPath(group[i],date,sidereal,false).orbit);
  });
  const {orbit,surface}=buildPath(active,date,sidereal,track);
@@ -375,7 +389,7 @@ function frame(real){
  const showText=real-lastText>150;
  if(orbitDirty||Math.abs(time-lastPath)>Math.max(10000,rate*180))updatePaths(date,sidereal);
  for(const sat of fleet){
-  const visible=sat.record&&(showAllOrbits|| (group?group.includes(sat):filter==='Alle'||filter===sat.type));
+  const visible=sat.record&&sat.shown;
   const state=visible?satellite.propagate(sat.record,date):null;
   sat.marker.visible=Boolean(state?.position);
   if(state?.position){
@@ -418,7 +432,7 @@ function frame(real){
  camera.lookAt(look);
  camera.updateMatrixWorld();
  if(camera.position.length()<2.95)loadDayDetail();
- positionPlaces();
+ positionPlaces();positionStations();
  coverageLimit.value=2;
  if(viewMode==='arctic'||(viewMode==='coverage'&&arcticPair.includes(active?.id))){
   coverageCenter.set(0,1,0);
@@ -465,4 +479,4 @@ async function init(){
  accept(rows);
  try{localStorage.setItem(refreshKey,JSON.stringify({attempt,rows:fleet.map(s=>s.omm).filter(Boolean)}));}catch{}
 }
-initializeExploration();renderList();describe();resize();init();setInterval(init,7200000);requestAnimationFrame(frame);
+initializeExploration();initializeStations();renderList();describe();resize();init();setInterval(init,7200000);requestAnimationFrame(frame);
