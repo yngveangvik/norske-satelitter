@@ -72,6 +72,7 @@ function loadDayDetail(){
 const sunlight = new THREE.Vector3(1, 0, 0);
 const coverageCenter = new THREE.Vector3();
 const coverageLimit = {value: 2};
+const coverageTint={value:new THREE.Color(0x0370bd)};
 const sphere = new THREE.SphereGeometry(1, 96, 64);
 const earth = new THREE.Mesh(sphere, new THREE.ShaderMaterial({
  uniforms: {
@@ -79,7 +80,7 @@ const earth = new THREE.Mesh(sphere, new THREE.ShaderMaterial({
   nightMap: {value: nightMap},
   sunlight: {value: sunlight},
   coverageCenter: {value: coverageCenter},
-  coverageLimit
+  coverageLimit,coverageTint
  },
  vertexShader: `
   varying vec2 mapUv;
@@ -95,6 +96,7 @@ const earth = new THREE.Mesh(sphere, new THREE.ShaderMaterial({
   uniform vec3 sunlight;
   uniform vec3 coverageCenter;
   uniform float coverageLimit;
+  uniform vec3 coverageTint;
   varying vec2 mapUv;
   varying vec3 globeNormal;
   void main() {
@@ -106,13 +108,51 @@ const earth = new THREE.Mesh(sphere, new THREE.ShaderMaterial({
    vec3 dark = surface * vec3(0.029, 0.038, 0.060) + lights * 0.75;
    vec3 base = mix(dark, lit, day);
    float edge = dot(normalize(globeNormal), coverageCenter) - coverageLimit;
-   float mask = smoothstep(-0.002, 0.004, edge);
-   float rim = 1.0 - smoothstep(0.0, 0.008, abs(edge));
-   gl_FragColor = vec4(mix(base, vec3(0.012, 0.44, 0.74), mask * 0.35 + rim * 0.45), 1.0);
+   float mask = smoothstep(-0.0004, 0.0004, edge);
+   float rim = 1.0 - smoothstep(0.0002, 0.0012, abs(edge));
+   gl_FragColor = vec4(mix(base, coverageTint, clamp(mask * 0.12 + rim * 0.16,0.0,1.0)), 1.0);
    #include <colorspace_fragment>
   }`
 }));
 scene.add(earth);
+
+// Passive pushbroom field of view: a cross-track line, never an emitted pulse.
+const scanSegments=48;
+const scanPositions=new Float32Array(scanSegments*9);
+const scanGeometry=new THREE.BufferGeometry();
+scanGeometry.setAttribute('position',new THREE.BufferAttribute(scanPositions,3));
+const scanBeam=new THREE.Mesh(scanGeometry,new THREE.MeshBasicMaterial({color:0xff2638,transparent:true,opacity:.09,depthWrite:false,side:THREE.DoubleSide}));
+scanBeam.visible=false;scanBeam.frustumCulled=false;scene.add(scanBeam);
+const scanLineGeometry=new THREE.BufferGeometry();
+const scanLinePositions=new Float32Array((scanSegments+1)*3);
+scanLineGeometry.setAttribute('position',new THREE.BufferAttribute(scanLinePositions,3));
+const scanLine=new THREE.Line(scanLineGeometry,new THREE.LineBasicMaterial({color:0xff2638,transparent:true,opacity:.95,depthWrite:false}));
+scanLine.visible=false;scanLine.frustumCulled=false;scene.add(scanLine);
+function updateScan(){
+ scanBeam.visible=scanLine.visible=viewMode==='coverage'&&payload==='hypso'&&Boolean(active?.marker.visible);
+ if(!scanBeam.visible)return;
+ const apex=active.marker.position;
+ const axis=apex.clone().normalize();
+ const later=new Date(time+1000);
+ const next=satellite.propagate(active.record,later);
+ if(!next.position){scanBeam.visible=scanLine.visible=false;return;}
+ const along=earthVector(satellite.eciToEcf(next.position,satellite.gstime(later))).normalize().addScaledVector(axis,-1);
+ along.addScaledVector(axis,-along.dot(axis)).normalize();
+ const across=new THREE.Vector3().crossVectors(axis,along).normalize();
+ // Schematic nadir view, ~70 km swath at 500 km altitude; not live attitude.
+ const halfWidth=Math.max(0,apex.length()-1)*Math.tan(4*Math.PI/180);
+ for(let i=0;i<=scanSegments;i++){
+  const angle=(i/scanSegments*2-1)*halfWidth;
+  const point=axis.clone().multiplyScalar(Math.cos(angle)).addScaledVector(across,Math.sin(angle)).multiplyScalar(1.002);
+  point.toArray(scanLinePositions,i*3);
+  if(i<scanSegments)apex.toArray(scanPositions,i*9);
+  if(i<scanSegments)point.toArray(scanPositions,i*9+3);
+  if(i>0)point.toArray(scanPositions,(i-1)*9+6);
+ }
+ scanGeometry.attributes.position.needsUpdate=true;
+ scanLineGeometry.attributes.position.needsUpdate=true;
+}
+
 const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(1.018,96,64),new THREE.ShaderMaterial({
  transparent:true,depthWrite:false,
  uniforms:{},vertexShader:'varying vec3 n; varying vec3 v; void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}',
@@ -149,7 +189,7 @@ const fleetPaths=fleet.map(sat=>{
  scene.add(line);
  return line;
 });
-let showAllOrbits=false;
+let showAllOrbits=true;
 scene.add(path,ground,...comparisonPaths);
 let lon=.24,lat=1.12,distance=3.6,target=3.6,orbitDirty=true,lastPath=0;
 function resize(){
@@ -188,6 +228,8 @@ function setSatelliteVisibility(visible){
 }
 let portraitId;
 function describe(){
+ if(activePort){describeSpaceport();return;}
+ $('port-details').hidden=true;
  if(activeStation){describeStation();return;}
  $('facts').classList.remove('station-facts');$('metrics').hidden=false;$('launch-details').hidden=false;$('station-details').hidden=true;
  $('sat-credit').textContent='Bilde';
@@ -221,6 +263,7 @@ function describe(){
  $('epoch').textContent=active.omm?'Bane '+epoch(active).toLocaleString('nb-NO',{timeZone:'UTC',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' UTC':'Banedata utilgjengelig';
 }
 function clearSatellite(resetCamera=true){
+ activePort=null;closeOrbitGuide();
  activeStation=null;portraitId=undefined;updateStationList();
  releaseFollow();
  active=null;
@@ -235,6 +278,7 @@ $('overview').onclick=()=>clearSatellite();
 $('close-facts').onclick=()=>{clearSatellite();$('menu-toggle').focus({preventScroll:true});};
 
 function select(sat, preserveMode=false){
+ activePort=null;closeOrbitGuide();
  activeStation=null;portraitId=undefined;updateStationList();
  if(!preserveMode && extraSatellites() && !extraSatellites().includes(sat))configureView('');
  if(viewMode!=='pass-mode')norwayFocus=false;
@@ -251,18 +295,19 @@ document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{
  else renderList();
 });
 $('all-orbits').onclick=()=>{
+ closeOrbitGuide();
  showAllOrbits=!showAllOrbits;
  $('all-orbits').setAttribute('aria-pressed',showAllOrbits);
  orbitDirty=true;
 };
 $('track').onclick=()=>{track=!track;$('track').setAttribute('aria-pressed',track);orbitDirty=true;};
-$('reset').onclick=()=>{if(viewMode==='follow')configureView('');norwayFocus=false;lon=.24;lat=1.12;target=!active||active.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));};
+$('reset').onclick=()=>{if(viewMode==='coverage'){coverageFollow=false;coverageFree=false;}if(viewMode==='follow')configureView('');norwayFocus=false;lon=.24;lat=1.12;target=!active||active.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));};
 function zoom(factor){
- if(viewMode==='follow'){
+ if(viewMode==='follow'||coverageFollow){
   followGap=Math.max(.09,Math.min(10,followGap*factor));
   return;
  }
- target=Math.max(1.35,Math.min(48,target*factor));}
+ target=Math.max(coverageFree?.09:1.35,Math.min(48,target*factor));}
 $('plus').onclick=()=>zoom(.8);$('minus').onclick=()=>zoom(1.25);
 $('rate').onchange=e=>{rate=Number(e.target.value);};
 $('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Spill av':'Pause';};
@@ -271,13 +316,22 @@ const ray=new THREE.Raycaster();
 const pointers=new Map();
 let tap=null;
 function releaseFollow(){
- if(viewMode!=='follow')return;
+ if(viewMode!=='follow'&&!coverageFollow)return;
+ if(viewMode==='coverage'){
+  // Release only the camera: keep payload effects and their controls active.
+  coverageFollow=false;coverageFree=true;coveragePivot.copy(look);
+  const offset=camera.position.clone().sub(coveragePivot);
+  target=distance=offset.length();
+  const radial=offset.normalize();
+  lon=Math.atan2(-radial.z,radial.x);lat=Math.asin(Math.max(-1,Math.min(1,radial.y)));
+  return;
+ }
  const radial=camera.position.clone().normalize();
  configureView('',true);
- lon=Math.atan2(-radial.z,radial.x);
- lat=Math.asin(radial.y);
+ lon=Math.atan2(-radial.z,radial.x);lat=Math.asin(radial.y);
  target=distance=camera.position.length()||3.6;
 }
+
 function pinchDistance(){
  const [a,b]=pointers.values();
  return Math.hypot(a.x-b.x,a.y-b.y);
@@ -341,7 +395,7 @@ function buildPath(sat,date,sidereal,withGround) {
 function updatePaths(date,sidereal){
  fleetPaths.forEach((line,index)=>{
   const sat=fleet[index];
-  line.visible=showAllOrbits&&sat.shown&&Boolean(sat.record);
+  line.visible=!guideOpen&&showAllOrbits&&sat.shown&&Boolean(sat.record);
   if(line.visible)replaceLine(line,buildPath(sat,date,sidereal,false).orbit);
  });
  orbitDirty=false;lastPath=time;
@@ -385,11 +439,12 @@ function frame(real){
  distance+=(target-distance)*.09;
  cameraGoal.set(distance*Math.cos(lat)*Math.cos(lon),distance*Math.sin(lat),-distance*Math.cos(lat)*Math.sin(lon));
  center.set(0,0,0);
+ if(coverageFree){cameraGoal.add(coveragePivot);if(cameraGoal.length()<1.03)cameraGoal.setLength(1.03);center.copy(coveragePivot);}
  const group=extraSatellites();
  const showText=real-lastText>150;
  if(orbitDirty||Math.abs(time-lastPath)>Math.max(10000,rate*180))updatePaths(date,sidereal);
  for(const sat of fleet){
-  const visible=sat.record&&sat.shown;
+  const visible=!guideOpen&&sat.record&&sat.shown;
   const state=visible?satellite.propagate(sat.record,date):null;
   sat.marker.visible=Boolean(state?.position);
   if(state?.position){
@@ -401,10 +456,18 @@ function frame(real){
    $('speed').textContent=state?.velocity?fmt(Math.hypot(state.velocity.x,state.velocity.y,state.velocity.z),2)+' km/s':'–';
   }
  }
- if(viewMode==='follow'&&active?.marker.visible){
+ if((viewMode==='follow'||coverageFollow)&&active?.marker.visible){
   const radius=active.marker.position.length();
   cameraGoal.copy(active.marker.position).setLength(radius+followGap);
   center.copy(active.marker.position).setLength(1);
+  if(coverageFollow){
+   // Oblique view: show both the spacecraft and the connection to the ground.
+   const radial=active.marker.position.clone().normalize();
+   const side=new THREE.Vector3(Math.abs(radial.y)>.9?1:0,Math.abs(radial.y)>.9?0:1,0).cross(radial).normalize();
+   center.copy(radial).multiplyScalar(1+(radius-1)*.55);
+   const extent=Math.max(.12,radius-center.length()+followGap);
+   cameraGoal.copy(center).addScaledVector(radial,extent).addScaledVector(side,extent*.85);
+  }
  }else if(norwayFocus){
   center.copy(cameraGoal).normalize().multiplyScalar(.56);
  }
@@ -433,16 +496,19 @@ function frame(real){
  camera.updateMatrixWorld();
  if(camera.position.length()<2.95)loadDayDetail();
  positionPlaces();positionStations();
+ updateOrbitGuide();
  coverageLimit.value=2;
- if(viewMode==='arctic'||(viewMode==='coverage'&&arcticPair.includes(active?.id))){
+ coverageTint.value.set(0x1bb1b0);
+ if(viewMode==='arctic'||(viewMode==='coverage'&&payload==='comms'&&arcticPair.includes(active?.id))){
   coverageCenter.set(0,1,0);
   coverageLimit.value=Math.sin(65*radians);
- }else if(viewMode==='coverage'&&aisSatellites.has(active.id)&&active?.marker.visible){
+ }else if(viewMode==='coverage'&&(payload==='ais'||(payload==='comms'&&active?.type==='GEO'))&&active?.marker.visible){
   const elevation=10*radians;
   const radius=active.marker.position.length();
   coverageCenter.copy(active.marker.position).normalize();
   coverageLimit.value=Math.cos(Math.acos(Math.min(1,Math.cos(elevation)/radius))-elevation);
  }
+ updateScan(real);updateInstrumentFX(real);
  if(showText){
   lastText=real;
   if(viewMode==='arctic'||viewMode==='pass-mode')explainView();
@@ -479,4 +545,4 @@ async function init(){
  accept(rows);
  try{localStorage.setItem(refreshKey,JSON.stringify({attempt,rows:fleet.map(s=>s.omm).filter(Boolean)}));}catch{}
 }
-initializeExploration();initializeStations();renderList();describe();resize();init();setInterval(init,7200000);requestAnimationFrame(frame);
+initializeExploration();initializeStations();initializeOrbitGuide();renderList();describe();resize();clearSatellite();distance=target;init();setInterval(init,7200000);requestAnimationFrame(frame);

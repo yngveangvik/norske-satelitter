@@ -4,24 +4,25 @@ const places = [
  ['Stavanger',58.9700,5.7331],['Kristiansand',58.1467,7.9956],
  ['Ålesund',62.4722,6.1549],['Trondheim',63.4305,10.3951],
  ['Bodø',67.2804,14.4049],['Tromsø',69.6492,18.9553],
- ['Kourou',5.2,-52.77]
+ ['Guiana Space Centre',5.2,-52.77]
 ];
 const radians = Math.PI / 180;
 const aisSatellites = new Set([62702,42826,42828,48272,68454]);
 const comparison = [62702,60422,40613];
 const arcticPair = [60422,60423];
 const arcticSource = 'https://spacenorway.com/infrastructure/satellite-fleet/asbm-1-asbm-2/';
-const modes = ['coverage','pass-mode','compare','follow','arctic'];
+const modes = ['coverage','pass-mode','follow'];
 let viewMode = '', nextPass = null, passKey = '', norwayFocus = false, showPlaces = true;
 function surfacePoint(lat,lon) {
  const a=lat*radians,b=lon*radians;
  return new THREE.Vector3(Math.cos(a)*Math.cos(b),Math.sin(a),-Math.cos(a)*Math.sin(b));
 }
-function extraSatellites() {
- const ids = viewMode==='compare' ? comparison : viewMode==='arctic' ? arcticPair : null;
- return ids ? ids.map(id=>fleet.find(s=>s.id===id)) : null;
-}
+function extraSatellites(){return null;}
 function configureView(mode, keepCamera=false) {
+ if(guideOpen)closeOrbitGuide();
+ const wasFollowing=viewMode==='follow'||coverageFollow;
+ coverageFollow=mode==='coverage';coverageFree=false;
+ if(mode==='coverage'&&!wasFollowing)followGap=active.type==='LEO'?.30:.85;
  viewMode=mode;
  if(mode==='follow')followGap=active.type==='LEO'?.30:.85;
  norwayFocus=false;
@@ -32,12 +33,8 @@ function configureView(mode, keepCamera=false) {
  $('pass-tools').hidden=mode!=='pass-mode';
  $('view-source').hidden=mode!=='arctic';
  $('view-source').href=arcticSource;
- if (mode==='arctic'||mode==='compare') {
-  filter='Alle';
-  document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.filter==='Alle'));
-  select(fleet.find(s=>s.id===(mode==='arctic'?60422:62702)),true);
-  lat=mode==='arctic'?1.15:.66;lon=.26;
-  target=Math.max(24,24/Math.max(.54,camera.aspect));
+ if(mode==='coverage'){
+  // Keep the selected satellite under the camera without changing zoom.
  } else if (mode) {
   target=active.type==='LEO'?3.6:Math.max(22,22/Math.max(.54,camera.aspect));
   if(mode==='pass-mode') centerPlace(false);
@@ -57,7 +54,7 @@ function setMenu(open){
  const stationMode=$('satellittmeny').dataset.catalog==='stations';
  menu.setAttribute('aria-expanded',open&&!stationMode);
  $('stations-menu').setAttribute('aria-expanded',open&&stationMode);
- menu.textContent=open&&!stationMode?'Lukk satellitter':'Vis satellitter';
+ menu.textContent='Satellitter';
 }
 function initializeExploration() {
  const menu=$('menu-toggle');
@@ -81,11 +78,14 @@ function initializeExploration() {
   if(event.key!=='Escape')return;
   if(menu.getAttribute('aria-expanded')==='true'||$('stations-menu').getAttribute('aria-expanded')==='true'){setMenu(false);menu.focus();}
   else if(explore.getAttribute('aria-expanded')==='true'){explore.setAttribute('aria-expanded','false');explore.focus();}
-  else if(active||activeStation)$('close-facts').click();
+  else if(guideOpen){closeOrbitGuide();}
+  else if(active||activeStation||activePort)$('close-facts').click();
  });
  for(const [id,[name,lat,lon]] of places.entries()) {
-  const label=document.createElement('span');
-  label.className='place'+(id===0||name==='Kourou'?' spaceport':'');
+  const portId=id===0?'andoya':id===9?'guiana':null;
+  const label=document.createElement(portId?'button':'span');
+  if(portId){label.type='button';label.onclick=()=>selectSpaceport(portId);label.setAttribute('aria-label','Åpne '+name);}
+  label.className='place'+(id===0||name==='Guiana Space Centre'?' spaceport':'');
   label.textContent=name;
   $('places').append(label);
   const option=new Option(name,id);
@@ -104,7 +104,7 @@ function initializeExploration() {
   explainView();
  };
  modes.forEach(id=>$(id).onclick=()=>configureView(viewMode===id?'':id));
- $('norway').onclick=()=>{if(viewMode==='follow')configureView('');centerPlace(true);showPlaces=true;$('place-toggle').setAttribute('aria-pressed','true');};
+ $('norway').onclick=()=>{if(viewMode==='coverage'){coverageFollow=false;coverageFree=false;}if(viewMode==='follow')configureView('');centerPlace(true);showPlaces=true;$('place-toggle').setAttribute('aria-pressed','true');};
  $('place-toggle').onclick=()=>{showPlaces=!showPlaces;$('place-toggle').setAttribute('aria-pressed',showPlaces);};
 }
 const placeLabels=[];
@@ -164,12 +164,9 @@ function findPass(sat, place, from) {
 }
 function explainView(){
  const field=$('view-message');
+ $('payload-options').hidden=viewMode!=='coverage';
  if(viewMode==='coverage'){
-  field.textContent=aisSatellites.has(active.id)
-   ? 'Det blå feltet viser hvor satellitten er minst 10° over horisonten. Det illustrerer mulig AIS-mottak. Faktisk mottak avhenger blant annet av signal og antenne.'
-   : arcticPair.includes(active.id)
-    ? 'Det blå feltet markerer området nord for 65° N som ASBM-systemet er laget for å dekke. Velg «ASBM i Arktis» for å se begge satellittene.'
-    : 'Velg en AIS-satellitt eller ASBM for å se en illustrasjon av dekningen.';
+  syncPayload();field.textContent=payloadExplanation();
  }
  if(viewMode==='compare')field.textContent='Samme målestokk: NorSat-4 (lilla), ASBM 1 (blå) og THOR 7 (hvit). Spol fram for å se forskjellen i omløpstid.';
  if(viewMode==='follow')field.textContent='Kameraet følger '+active.name+' mens jorda beveger seg under den.';
