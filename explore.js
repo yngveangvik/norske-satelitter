@@ -67,6 +67,9 @@ function initializeExploration() {
  function arrangeControls(){
   const parent=mobileLayout.matches?$('explore-tools'):stage;
   parent.append(controls,timebar);
+  const exploreSection=$('explore');
+  if(mobileLayout.matches)$('header-actions').append(exploreSection);
+  else stage.append(exploreSection);
  }
  mobileLayout.addEventListener('change',arrangeControls);
  arrangeControls();

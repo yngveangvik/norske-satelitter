@@ -185,3 +185,68 @@ button:disabled{opacity:.45;cursor:default}
 @media(max-width:359px){
  #facts #metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}
 }
+
+/* Restrained profile colours, translucent controls and welcome. */
+header{position:relative;z-index:6;height:92px;padding:24px 36px 16px;background:linear-gradient(to bottom,#000,#000e 65%,#0009)}
+header::after{content:"";position:absolute;top:100%;left:0;right:0;height:32px;background:linear-gradient(to bottom,#0009,transparent);pointer-events:none}
+header .brand img{width:140px;height:auto}
+main{height:calc(100dvh - 129px)}
+button,select{border-radius:8px;background:rgb(44 39 84 / 72%);transition:background-color .16s ease,color .16s ease,transform .12s ease;-webkit-tap-highlight-color:transparent}
+select option{background:#2c2754;color:#fff}
+@media(hover:hover){button:hover,select:hover{background:rgb(94 90 175 / 85%)}}
+button:not(:disabled):active{transform:scale(.97);background:#5e5aaf}
+button[aria-pressed=true]{background:#a2a2ed;color:#000}
+#now,#jump{background:rgb(252 140 48 / 92%);color:#000}
+#now:active,#jump:not(:disabled):active{background:#fc8c30}
+#menu-toggle{background:rgb(44 39 84 / 44%);text-decoration:none;padding:10px 14px}
+#menu-toggle[aria-expanded=true]{background:#a2a2ed;color:#000}
+#satellittmeny .sat{border-radius:8px}
+#satellittmeny .sat[aria-pressed=true]{background:rgb(94 90 175 / 65%);color:#fff}
+#satellittmeny .sat:hover{background:rgb(44 39 84 / 80%)}
+.status,.timebar,.view-controls{border-radius:8px;background:rgb(0 0 0 / 45%)}
+#view-info{border-radius:8px;background:rgb(0 0 0 / 88%)}
+#facts #close-facts{border-radius:8px}
+#facts,#explore-tools,#view-info{opacity:1;transition:opacity .18s ease,display .18s allow-discrete}
+#facts[hidden],#view-info[hidden]{opacity:0}
+@starting-style{#facts:not([hidden]),#view-info:not([hidden]){opacity:0}}
+#welcome{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#000;opacity:1;pointer-events:none;transition:opacity .6s ease}
+#welcome[hidden]{display:none}
+#welcome.welcome-leaving{opacity:0}
+.welcome-brand{text-align:center;padding:24px}
+.welcome-brand img{display:block;width:240px;max-width:65vw;height:auto;margin:auto}
+.welcome-brand p{font-family:Suisse,Arial,sans-serif;font-size:13px;letter-spacing:.08em;color:#a2a2ed;margin:22px 0 0}
+@media (max-width:720px), (orientation:portrait) and (max-width:1024px){
+ header{height:auto;min-height:76px;padding:20px 20px 12px;gap:12px}
+ header .brand img{width:112px}
+ #layout{height:auto}
+ #explore-toggle{background:rgb(44 39 84 / 72%);border-radius:8px}
+ #explore-toggle[aria-expanded=true]{background:#a2a2ed;color:#000}
+ #explore-tools{border-radius:10px;background:rgb(0 0 0 / 94%)}
+ #explore-toggle[aria-expanded=false]+#explore-tools{opacity:0}
+ @starting-style{#explore-toggle[aria-expanded=true]+#explore-tools{opacity:0}}
+}
+@media(prefers-reduced-motion:reduce){
+ button,select,#facts,#explore-tools,#view-info,#welcome{transition:none}
+ button:not(:disabled):active{transform:none}
+}
+
+#header-actions{display:flex;align-items:center;gap:8px}
+@media (max-width:720px), (orientation:portrait) and (max-width:1024px){
+ header{gap:8px;padding-inline:16px}
+ header .brand{min-width:0}
+ header .brand img{max-width:100%}
+ #header-actions{flex:none;gap:6px}
+ #header-actions #explore{position:relative;inset:auto;display:block;z-index:7}
+ #header-actions #menu-toggle,#header-actions #explore-toggle{
+  height:44px;min-height:44px;display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;margin:0;padding:0 10px;white-space:nowrap
+ }
+ #header-actions #menu-toggle{font-size:12px}
+ #header-actions #explore-toggle{width:44px;padding:0;font-size:22px}
+ #header-actions #explore-tools{
+  position:absolute;top:calc(100% + 10px);right:0;bottom:auto;
+  width:min(330px,calc(100vw - 32px));max-height:calc(100dvh - 130px);
+  overflow:auto;overscroll-behavior:contain
+ }
+ #header-actions #explore-tools button,#header-actions #explore-tools select{min-height:40px}
+}

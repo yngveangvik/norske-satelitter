@@ -140,6 +140,15 @@ const ground=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMateri
 const comparisonPaths = ['#a2a2ed','#7de0ff','#eef1fe'].map(color =>
  new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color,transparent:true,opacity:.82}))
 );
+const fleetPaths=fleet.map(sat=>{
+ const line=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({
+  color:colors[sat.type],transparent:true,opacity:.45
+ }));
+ line.visible=false;
+ scene.add(line);
+ return line;
+});
+let showAllOrbits=false;
 scene.add(path,ground,...comparisonPaths);
 let lon=.24,lat=1.12,distance=3.6,target=3.6,orbitDirty=true,lastPath=0;
 function resize(){
@@ -227,6 +236,11 @@ document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{
  if(active&&filter!=='Alle'&&active.type!==filter)clearSatellite();
  else renderList();
 });
+$('all-orbits').onclick=()=>{
+ showAllOrbits=!showAllOrbits;
+ $('all-orbits').setAttribute('aria-pressed',showAllOrbits);
+ orbitDirty=true;
+};
 $('track').onclick=()=>{track=!track;$('track').setAttribute('aria-pressed',track);orbitDirty=true;};
 $('reset').onclick=()=>{if(viewMode==='follow')configureView('');norwayFocus=false;lon=.24;lat=1.12;target=!active||active.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));};
 function zoom(factor){
@@ -311,14 +325,19 @@ function buildPath(sat,date,sidereal,withGround) {
  return {orbit,surface};
 }
 function updatePaths(date,sidereal){
+ fleetPaths.forEach((line,index)=>{
+  const sat=fleet[index];
+  line.visible=showAllOrbits&&Boolean(sat.record);
+  if(line.visible)replaceLine(line,buildPath(sat,date,sidereal,false).orbit);
+ });
  orbitDirty=false;lastPath=time;
  const group=extraSatellites();
  comparisonPaths.forEach((line,i)=>{
-  line.visible=Boolean(group?.[i]?.record);
+  line.visible=!showAllOrbits&&Boolean(group?.[i]?.record);
   if(line.visible)replaceLine(line,buildPath(group[i],date,sidereal,false).orbit);
  });
  const {orbit,surface}=buildPath(active,date,sidereal,track);
- path.visible=!group&&orbit.length>0;
+ path.visible=!showAllOrbits&&!group&&orbit.length>0;
  ground.visible=track&&surface.length>0;
  if(path.visible)replaceLine(path,orbit);
  if(ground.visible)replaceLine(ground,surface);
@@ -356,12 +375,12 @@ function frame(real){
  const showText=real-lastText>150;
  if(orbitDirty||Math.abs(time-lastPath)>Math.max(10000,rate*180))updatePaths(date,sidereal);
  for(const sat of fleet){
-  const visible=sat.record&&(group?group.includes(sat):filter==='Alle'||filter===sat.type);
+  const visible=sat.record&&(showAllOrbits|| (group?group.includes(sat):filter==='Alle'||filter===sat.type));
   const state=visible?satellite.propagate(sat.record,date):null;
   sat.marker.visible=Boolean(state?.position);
   if(state?.position){
    sat.marker.position.copy(earthVector(satellite.eciToEcf(state.position,sidereal)));
-   sat.marker.material.color.set(sat===active&&!group?'#fc8c30':colors[sat.type]);
+
   }
   if(sat===active&&showText){
    $('height').textContent=state?.position?fmt(satellite.eciToGeodetic(state.position,sidereal).height)+' km':'–';
@@ -390,7 +409,10 @@ function frame(real){
  }
  camera.position.copy(cameraPosition);
  for(const sat of fleet)if(sat.marker.visible){
-  sat.marker.scale.setScalar(camera.position.distanceTo(sat.marker.position)*(sat===active?.028:.019));
+  // Pulse brightness in sRGB while preserving the icon's screen size.
+  const brightness=reducedMotion.matches?1:.76+.24*(.5+.5*Math.sin(real*.0021));
+  sat.marker.material.color.setRGB(brightness,brightness,brightness,THREE.SRGBColorSpace);
+  sat.marker.scale.setScalar(camera.position.distanceTo(sat.marker.position)*(sat===active?.022:.015));
  }
 
  camera.lookAt(look);
@@ -412,7 +434,10 @@ function frame(real){
   if(viewMode==='arctic'||viewMode==='pass-mode')explainView();
   $('clock').textContent=date.toISOString().slice(0,19).replace('T',' ')+' UTC';
  }
- if(renderer)renderer.render(scene,camera);
+ if(renderer){
+  renderer.render(scene,camera);
+  if(dayMap.image?.complete && nightMap.image?.complete)window.dismissWelcome?.();
+ }else{window.dismissWelcome?.();}
  requestAnimationFrame(frame);
 }
 function accept(rows){
