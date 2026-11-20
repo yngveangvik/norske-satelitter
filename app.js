@@ -301,7 +301,6 @@ $('all-orbits').onclick=()=>{
  orbitDirty=true;
 };
 $('track').onclick=()=>{track=!track;$('track').setAttribute('aria-pressed',track);orbitDirty=true;};
-$('reset').onclick=()=>{if(viewMode==='coverage'){coverageFollow=false;coverageFree=false;}if(viewMode==='follow')configureView('');norwayFocus=false;lon=.24;lat=1.12;target=!active||active.type==='LEO'?3.6:Math.max(22,22/(camera.aspect||1));};
 function zoom(factor){
  if(viewMode==='follow'||coverageFollow){
   followGap=Math.max(.09,Math.min(10,followGap*factor));
@@ -492,10 +491,11 @@ function frame(real){
   sat.marker.scale.setScalar(camera.position.distanceTo(sat.marker.position)*(sat===active?.022:.015));
  }
 
+ frameCardOffset();
  camera.lookAt(look);
  camera.updateMatrixWorld();
  if(camera.position.length()<2.95)loadDayDetail();
- positionPlaces();positionStations();
+ positionPlaces();positionStations();positionWorld();
  updateOrbitGuide();
  coverageLimit.value=2;
  coverageTint.value.set(0x1bb1b0);
@@ -545,4 +545,4 @@ async function init(){
  accept(rows);
  try{localStorage.setItem(refreshKey,JSON.stringify({attempt,rows:fleet.map(s=>s.omm).filter(Boolean)}));}catch{}
 }
-initializeExploration();initializeStations();initializeOrbitGuide();renderList();describe();resize();clearSatellite();distance=target;init();setInterval(init,7200000);requestAnimationFrame(frame);
+initializeExploration();initializeStations();initializeOrbitGuide();initializeWorld();renderList();describe();resize();clearSatellite();distance=target;init();setInterval(init,7200000);requestAnimationFrame(frame);

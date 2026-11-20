@@ -1,11 +1,4 @@
-const places = [
- ['Andøya Spaceport',69.10839,15.58937],
- ['Oslo',59.9139,10.7522],['Bergen',60.3913,5.3221],
- ['Stavanger',58.9700,5.7331],['Kristiansand',58.1467,7.9956],
- ['Ålesund',62.4722,6.1549],['Trondheim',63.4305,10.3951],
- ['Bodø',67.2804,14.4049],['Tromsø',69.6492,18.9553],
- ['Guiana Space Centre',5.2,-52.77]
-];
+const places = [["New York", 40.7128, -74.006, 1], ["London", 51.5074, -0.1278, 1], ["Paris", 48.8566, 2.3522, 1], ["Washington D.C.", 38.9072, -77.0369, 1], ["Los Angeles", 34.0522, -118.2437, 1], ["Tokyo", 35.6762, 139.6503, 1], ["Beijing", 39.9042, 116.4074, 1], ["Shanghai", 31.2304, 121.4737, 1], ["Hongkong", 22.3193, 114.1694, 1], ["Singapore", 1.3521, 103.8198, 1], ["Dubai", 25.2048, 55.2708, 1], ["Delhi", 28.6139, 77.209, 1], ["Mumbai", 19.076, 72.8777, 1], ["São Paulo", -23.5505, -46.6333, 1], ["Cairo", 30.0444, 31.2357, 1], ["Houston", 29.7604, -95.3698, 1], ["Pasadena", 34.1478, -118.1445, 1], ["Berlin", 52.52, 13.405, 2], ["Roma", 41.9028, 12.4964, 2], ["Madrid", 40.4168, -3.7038, 2], ["Brussel", 50.8503, 4.3517, 2], ["Amsterdam", 52.3676, 4.9041, 2], ["Frankfurt", 50.1109, 8.6821, 2], ["Istanbul", 41.0082, 28.9784, 2], ["Moskva", 55.7558, 37.6173, 2], ["Chicago", 41.8781, -87.6298, 2], ["San Francisco", 37.7749, -122.4194, 2], ["Toronto", 43.6532, -79.3832, 2], ["Mexico by", 19.4326, -99.1332, 2], ["Seoul", 37.5665, 126.978, 2], ["Bangkok", 13.7563, 100.5018, 2], ["Jakarta", -6.2088, 106.8456, 2], ["Sydney", -33.8688, 151.2093, 2], ["Johannesburg", -26.2041, 28.0473, 2], ["Lagos", 6.5244, 3.3792, 2], ["Buenos Aires", -34.6037, -58.3816, 2], ["Rio de Janeiro", -22.9068, -43.1729, 2], ["Huntsville", 34.7304, -86.5861, 2], ["Oslo", 59.9139, 10.7522, 3], ["Genève", 46.2044, 6.1432, 3], ["Reykjavik", 64.1466, -21.9426, 3], ["Tromsø", 69.6492, 18.9553, 3], ["Longyearbyen", 78.2232, 15.6469, 3], ["Nuuk", 64.1814, -51.6941, 3], ["Anchorage", 61.2181, -149.9003, 3], ["Rotterdam", 51.9244, 4.4777, 3], ["Panama by", 8.9824, -79.5199, 3], ["Honolulu", 21.3099, -157.8581, 3], ["Nairobi", -1.2921, 36.8219, 3], ["Addis Abeba", 9.03, 38.74, 3], ["Bogotá", 4.711, -74.0721, 3], ["Manila", 14.5995, 120.9842, 3], ["Taipei", 25.033, 121.5654, 3], ["Riyadh", 24.7136, 46.6753, 3], ["Melbourne", -37.8136, 144.9631, 3], ["Brasília", -15.7939, -47.8828, 3], ["Cape Town", -33.9249, 18.4241, 3], ["Peenemünde", 54.137, 13.768, 3], ["Koroljov", 55.916, 37.854, 3], ["Darmstadt", 49.8728, 8.6512, 3], ["Noordwijk", 52.239, 4.447, 3]];
 const radians = Math.PI / 180;
 const aisSatellites = new Set([62702,42826,42828,48272,68454]);
 const comparison = [62702,60422,40613];
@@ -29,7 +22,7 @@ function configureView(mode, keepCamera=false) {
  orbitDirty=true;
  passKey='';
  modes.forEach(id=>$(id).setAttribute('aria-pressed',id===mode));
- $('view-info').hidden=!mode;
+ $('view-info').hidden=!['coverage','pass-mode'].includes(mode);
  $('pass-tools').hidden=mode!=='pass-mode';
  $('view-source').hidden=mode!=='arctic';
  $('view-source').href=arcticSource;
@@ -64,15 +57,6 @@ function initializeExploration() {
  const controls=document.querySelector('.view-controls');
  const timebar=document.querySelector('.timebar');
  const stage=$('stage');
- function arrangeControls(){
-  const parent=mobileLayout.matches?$('explore-tools'):stage;
-  parent.append(controls,timebar);
-  const exploreSection=$('explore');
-  if(mobileLayout.matches)$('header-actions').append(exploreSection);
-  else stage.append(exploreSection);
- }
- mobileLayout.addEventListener('change',arrangeControls);
- arrangeControls();
  explore.onclick=()=>explore.setAttribute('aria-expanded',explore.getAttribute('aria-expanded')==='false');
  document.addEventListener('keydown',event=>{
   if(event.key!=='Escape')return;
@@ -82,17 +66,17 @@ function initializeExploration() {
   else if(active||activeStation||activePort)$('close-facts').click();
  });
  for(const [id,[name,lat,lon]] of places.entries()) {
-  const portId=id===0?'andoya':id===9?'guiana':null;
+  const portId=null;
   const label=document.createElement(portId?'button':'span');
   if(portId){label.type='button';label.onclick=()=>selectSpaceport(portId);label.setAttribute('aria-label','Åpne '+name);}
-  label.className='place'+(id===0||name==='Guiana Space Centre'?' spaceport':'');
+  label.className='place';
   label.textContent=name;
   $('places').append(label);
   const option=new Option(name,id);
   $('observer').add(option);
   placeLabels.push({label,position:surfacePoint(lat,lon)});
  }
- $('observer').value='8';
+ $('observer').value=String(places.findIndex(p=>p[0]==='Oslo'));
  $('observer').onchange=()=>{passKey='';centerPlace(false);explainView();};
  $('jump').onclick=()=>{
   if(!nextPass)return;
@@ -104,24 +88,21 @@ function initializeExploration() {
   explainView();
  };
  modes.forEach(id=>$(id).onclick=()=>configureView(viewMode===id?'':id));
- $('norway').onclick=()=>{if(viewMode==='coverage'){coverageFollow=false;coverageFree=false;}if(viewMode==='follow')configureView('');centerPlace(true);showPlaces=true;$('place-toggle').setAttribute('aria-pressed','true');};
  $('place-toggle').onclick=()=>{showPlaces=!showPlaces;$('place-toggle').setAttribute('aria-pressed',showPlaces);};
 }
 const placeLabels=[];
 const projected=new THREE.Vector3();
-function positionPlaces() {
- const width=mount.clientWidth,height=mount.clientHeight;
- for(const [index,{label,position}] of placeLabels.entries()){
-  projected.copy(position).multiplyScalar(1.004).project(camera);
-  const x=(projected.x+1)*width/2, y=(1-projected.y)*height/2;
-  const visible=showPlaces&&renderer&&position.dot(camera.position)>1.007&&projected.z<1&&x>3&&x<width-12&&y>0&&y<height&&(index===0||index===9||camera.position.length()<2.35);
+function positionPlaces(){
+ const w=mount.clientWidth,h=mount.clientHeight,occupied=[],selected=selectedScreenExclusion();
+ for(const [i,{label,position}] of placeLabels.entries()){
+  const p=position.clone().multiplyScalar(1.004).project(camera),x=(p.x+1)*w/2,y=(1-p.y)*h/2;
+  const threshold=[0,2.7,1.95,1.48][places[i][3]];
+  let visible=showPlaces&&renderer&&camera.position.length()<threshold&&position.dot(camera.position)>1.007&&p.z<1&&x>5&&x<w-20&&y>5&&y<h-22;
+  if(selected&&Math.abs(x-selected.x)<150&&Math.abs(y-selected.y)<35)visible=false;
+  const width=label.offsetWidth||places[i][0].length*7+12;
+  if(visible&&occupied.some(r=>x<r.x+r.w+8&&x+width>r.x-8&&Math.abs(y-r.y)<22))visible=false;
   label.hidden=!visible;
-  if(visible) {
-   const left = x>width-115 || (norwayFocus && [2,3,5,7].includes(index));
-   const dx=left ? -label.offsetWidth-11 : 9;
-   label.classList.toggle('label-left',left);
-   label.style.transform='translate('+Math.round(x+dx)+'px,'+Math.round(y-6)+'px)';
-  }
+  if(visible){occupied.push({x,y,w:width});label.classList.remove('label-left');label.style.transform='translate('+Math.round(Math.min(x+8,w-width-5))+'px,'+Math.round(y-6)+'px)';}
  }
 }
 function findPass(sat, place, from) {
