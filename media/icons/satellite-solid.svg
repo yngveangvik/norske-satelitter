@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Computer-Chip-1--Streamline-Sharp" xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 141.7 141.7">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        stroke: #fff;
+        stroke-width: 4px;
+      }
+    </style>
+  </defs>
+  <circle class="cls-1" cx="109.01" cy="32.71" r="7.12"/>
+  <rect class="cls-1" x="45" y="50.49" width="59.29" height="33.2" transform="translate(-25.58 72.48) rotate(-45.03)"/>
+  <rect class="cls-1" x="20.5" y="22.51" width="39.4" height="20.36" transform="translate(45.54 84.23) rotate(-135.03)"/>
+  <rect class="cls-1" x="89.28" y="91.24" width="39.4" height="20.36" transform="translate(114.4 250.19) rotate(-135.03)"/>
+  <path class="cls-1" d="M11.59,96.29l33.9,33.85c9.17-9.18,9.02-24.2-.33-33.55-9.35-9.35-24.39-9.47-33.57-.3Z"/>
+</svg>

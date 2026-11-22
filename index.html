@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="nb">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  /><title data-i18n="ui.norway_in_orbit">Norge i bane</title
+  ><meta
+    name="description"
+    content="Se hvor norske satellitter beveger seg rundt jorda."
+  /><meta name="theme-color" content="#000000" /><meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  /><meta name="apple-mobile-web-app-title" content="Norge i bane" /><meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  /><link rel="manifest" href="manifest.webmanifest" /><link
+    rel="apple-touch-icon"
+    sizes="180x180"
+    href="media/app-icon-180.png"
+  /><link rel="icon" type="image/png" href="media/app-icon-192.png" />
+  <link rel="stylesheet" href="css/app.css?v=41" />
+  <body>
+    <div id="welcome" hidden aria-hidden="true">
+      <div class="welcome-brand">
+        <svg class="welcome-trail" viewBox="0 0 350 350" aria-hidden="true">
+          <circle cx="175" cy="175" r="174" pathLength="100" />
+        </svg>
+        <div class="welcome-orbit">
+          <span><img src="media/icons/satellite-solid.svg" alt="" /></span>
+        </div>
+        <img src="media/romdirektoratet.png" alt="" width="240" height="61" />
+      </div>
+    </div>
+    <script src="js/ui/welcome.js?v=41"></script>
+    <header>
+      <a class="brand" href="./"
+        ><img
+          src="media/romdirektoratet.png"
+          alt="Direktoratet for romvirksomhet"
+          width="169"
+          height="43"
+          data-i18n-alt="ui.norwegian_space_agency"
+      /></a>
+      <div id="header-actions">
+        <button
+          id="menu-toggle"
+          aria-controls="satellittmeny"
+          aria-expanded="false"
+          data-i18n="ui.satellites"
+        >
+          Satellitter</button
+        ><button
+          id="stations-menu"
+          aria-expanded="false"
+          aria-controls="satellittmeny"
+          data-i18n="ui.ground_stations"
+        >
+          Bakkestasjoner
+        </button>
+      </div>
+    </header>
+    <main id="layout" class="menu-closed">
+      <aside id="satellittmeny" inert>
+        <div class="intro">
+          <h1 data-i18n="ui.norway_in_orbit">Norge i bane</h1>
+          <p data-i18n="ui.follow_norwegian_satellites_around_the_earth">
+            Følg norske satellitter rundt jorda.
+          </p>
+        </div>
+        <div id="sat-catalog">
+          <div
+            class="filters"
+            aria-label="Filtrer etter banetype"
+            data-i18n-aria-label="ui.filter_by_orbit_type"
+          >
+            <button data-filter="Alle" aria-pressed="true" data-i18n="ui.all">
+              Alle</button
+            ><button
+              data-filter="LEO"
+              title="Lav jordbane"
+              data-i18n-title="ui.low_earth_orbit"
+            >
+              LEO</button
+            ><button
+              data-filter="HEO"
+              title="Høyelliptisk bane"
+              data-i18n-title="ui.highly_elliptical_orbit"
+            >
+              HEO</button
+            ><button
+              data-filter="GEO"
+              title="Geostasjonær bane"
+              data-i18n-title="ui.geostationary_orbit"
+            >
+              GEO
+            </button>
+          </div>
+          <div
+            id="list"
+            aria-label="Satellitter"
+            data-i18n-aria-label="ui.satellites"
+          ></div>
+        </div>
+        <div id="station-catalog" hidden>
+          <div class="layer-actions">
+            <button
+              id="station-all"
+              aria-pressed="false"
+              data-i18n="ui.show_all"
+            >
+              Vis alle</button
+            ><button
+              id="station-none"
+              aria-pressed="true"
+              data-i18n="ui.show_none"
+            >
+              Vis ingen
+            </button>
+          </div>
+          <div id="station-list"></div>
+        </div>
+      </aside>
+      <section
+        id="stage"
+        aria-label="Interaktiv jordklode"
+        data-i18n-aria-label="ui.interactive_globe"
+      >
+        <div id="scene"></div>
+        <div
+          id="places"
+          aria-label="Steder på kloden"
+          data-i18n-aria-label="ui.places_on_the_globe"
+        ></div>
+        <div class="status" hidden>
+          <i aria-hidden="true"></i
+          ><span id="mode" data-i18n="ui.calculated_position"
+            >Beregnet posisjon</span
+          >
+        </div>
+        <article id="facts" hidden aria-labelledby="name">
+          <button
+            id="close-facts"
+            type="button"
+            aria-label="Lukk og avslutt sporing"
+            data-i18n-aria-label="ui.close_and_stop_tracking"
+          >
+            ×
+          </button>
+          <div class="fact-heading">
+            <figure id="portrait" hidden>
+              <img id="sat-image" alt="" width="52" height="52" />
+            </figure>
+            <div>
+              <h2 id="name"></h2>
+              <p id="mission"></p>
+            </div>
+          </div>
+          <p id="organization-summary" hidden></p>
+          <p id="orbit-health" role="status" hidden></p>
+          <dl id="organizations">
+            <div>
+              <dt id="owner-label" data-i18n="ui.owner">Eier</dt>
+              <dd id="owner"></dd>
+            </div>
+            <div id="operator-row">
+              <dt data-i18n="ui.operator">Operatør</dt>
+              <dd id="operator"></dd>
+            </div>
+          </dl>
+          <dl id="metrics">
+            <div>
+              <dt data-i18n="ui.altitude">Høyde</dt>
+              <dd id="height">–</dd>
+            </div>
+            <div>
+              <dt data-i18n="ui.speed">Fart</dt>
+              <dd id="speed">–</dd>
+            </div>
+            <div>
+              <dt data-i18n="ui.inclination">Inklinasjon</dt>
+              <dd id="inc">–</dd>
+            </div>
+            <div>
+              <dt data-i18n="ui.orbital_period">Omløpstid</dt>
+              <dd id="period">–</dd>
+            </div>
+          </dl>
+          <dl id="launch-details"></dl>
+          <dl id="station-details" hidden>
+            <div>
+              <dt data-i18n="ui.coordinates">Koordinater</dt>
+              <dd id="station-coordinates"></dd>
+            </div>
+          </dl>
+          <div id="port-details" hidden>
+            <dl>
+              <div>
+                <dt data-i18n="ui.coordinates">Koordinater</dt>
+                <dd id="port-coordinates"></dd>
+              </div>
+            </dl>
+            <details>
+              <summary data-i18n="ui.launch_pads">Oppskytingsramper</summary>
+              <ul id="port-pads"></ul>
+            </details>
+            <h3 data-i18n="ui.norwegian_satellites_launched_here">
+              Norske satellitter skutt opp her
+            </h3>
+            <ul id="port-satellites"></ul>
+            <p id="next-launch" aria-live="polite"></p>
+            <small id="launch-updated"></small>
+            <div class="port-links">
+              <a
+                id="port-official"
+                target="_blank"
+                rel="noopener"
+                data-i18n="ui.official_launch_information"
+                >Offisiell oppskytingsinformasjon</a
+              ><a
+                href="https://thespacedevs.com/llapi"
+                target="_blank"
+                rel="noopener"
+                >Data: Launch Library 2</a
+              >
+            </div>
+          </div>
+          <div class="fact-footnote">
+            <span id="epoch"></span
+            ><a
+              id="ownership-source"
+              target="_blank"
+              rel="noopener"
+              data-i18n="ui.source"
+              >Kilde</a
+            ><a
+              id="sat-credit"
+              target="_blank"
+              rel="noopener"
+              hidden
+              data-i18n="ui.image"
+              >Bilde</a
+            >
+          </div>
+        </article>
+        <section
+          id="explore"
+          aria-label="Utforsk banene"
+          data-i18n-aria-label="ui.explore_orbits"
+        >
+          <button
+            id="explore-toggle"
+            aria-expanded="false"
+            aria-controls="explore-tools"
+            aria-label="Åpne eller lukk meny"
+            data-i18n-aria-label="ui.open_or_close_menu"
+          >
+            <span class="menu-glyph" aria-hidden="true"
+              ><i></i><i></i><i></i
+            ></span>
+          </button>
+          <div id="explore-tools">
+            <div class="explore-buttons">
+              <button
+                id="all-orbits"
+                aria-pressed="true"
+                title="Vis banene til alle satellitter med tilgjengelige banedata"
+                data-i18n="ui.show_all_orbits"
+                data-i18n-title="ui.show_orbits_for_all_satellites_with_available_orbital_data"
+              >
+                Vis alle baner</button
+              ><button
+                id="coverage"
+                aria-pressed="false"
+                data-i18n="ui.what_does_the_satellite_see"
+              >
+                Hva ser satellitten?</button
+              ><button
+                id="pass-mode"
+                aria-pressed="false"
+                data-i18n="ui.next_pass"
+              >
+                Neste passering</button
+              ><button
+                id="follow"
+                aria-pressed="false"
+                data-i18n="ui.follow_satellite"
+              >
+                Følg satellitten
+              </button>
+            </div>
+            <div id="view-info" hidden>
+              <div
+                id="payload-options"
+                aria-label="Instrument"
+                hidden
+                data-i18n-aria-label="ui.instrument"
+              ></div>
+              <p id="view-message"></p>
+              <div id="pass-tools" hidden>
+                <label for="observer" data-i18n="ui.location">Sted</label
+                ><select id="observer"></select
+                ><button id="jump" data-i18n="ui.show_pass">
+                  Vis passeringen
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div class="view-controls">
+          <button
+            id="overview"
+            title="Avslutt fokus og vis hele jorda"
+            data-i18n="ui.show_globe"
+            data-i18n-title="ui.end_tracking_and_show_globe"
+          >
+            Vis hele jorda</button
+          ><button
+            id="place-toggle"
+            aria-pressed="true"
+            data-i18n="ui.place_names"
+          >
+            Steder</button
+          ><button
+            id="plus"
+            aria-label="Zoom inn"
+            data-i18n-aria-label="ui.zoom_in"
+          >
+            +</button
+          ><button
+            id="minus"
+            aria-label="Zoom ut"
+            data-i18n-aria-label="ui.zoom_out"
+          >
+            −
+          </button>
+        </div>
+        <div class="timebar">
+          <button id="now" data-i18n="ui.now">Nå</button
+          ><button id="pause" data-i18n="ui.pause">Pause</button
+          ><select
+            id="rate"
+            aria-label="Avspillingshastighet"
+            data-i18n-aria-label="ui.playback_speed"
+          >
+            <option value="1">1×</option>
+            <option value="60">60×</option>
+            <option value="600">600×</option>
+            <option value="3600">3600×</option></select
+          ><time id="clock"></time>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <span class="mouse-hint" data-i18n="ui.drag_to_rotate_scroll_to_zoom"
+        >Dra for å rotere · Rull for å zoome</span
+      ><span class="touch-hint" data-i18n="ui.drag_to_rotate_pinch_to_zoom"
+        >Dra for å rotere · Knip for å zoome</span
+      ><span
+        ><span data-i18n="ui.orbital_data">Banedata</span>
+        <a
+          href="https://celestrak.org/NORAD/elements/"
+          target="_blank"
+          rel="noopener"
+          >CelesTrak</a
+        >
+        · <span data-i18n="ui.earth_imagery">Jordbilder</span>
+        <a
+          href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/"
+          target="_blank"
+          rel="noopener"
+          >NASA</a
+        >
+        ·
+        <a
+          href="https://www.solarsystemscope.com/textures/"
+          target="_blank"
+          rel="noopener"
+          >Solar System Scope</a
+        >
+        (<a
+          href="https://creativecommons.org/licenses/by/4.0/"
+          target="_blank"
+          rel="noopener"
+          >CC BY 4.0</a
+        >)</span
+      >
+    </footer>
+
+    <script defer src="libraries/three.js?v=41"></script>
+    <script defer src="libraries/satellite.js?v=41"></script>
+    <script defer src="js/data/messages.js?v=41"></script>
+    <script defer src="js/ui/language.js?v=41"></script>
+    <script defer src="js/data/satellites.js?v=41"></script>
+    <script defer src="js/data/places.js?v=41"></script>
+    <script defer src="js/data/stations.js?v=41"></script>
+    <script defer src="js/data/spaceports.js?v=41"></script>
+    <script defer src="js/data/launches.js?v=41"></script>
+    <script defer src="js/data/portraits.js?v=41"></script>
+    <script defer src="js/ui/state.js?v=41"></script>
+    <script defer src="js/ui/explore.js?v=41"></script>
+    <script defer src="js/ui/stations.js?v=41"></script>
+    <script defer src="js/ui/spaceports.js?v=41"></script>
+    <script defer src="js/ui/launches.js?v=41"></script>
+    <script defer src="js/visual/instruments.js?v=41"></script>
+    <script defer src="js/ui/panels.js?v=41"></script>
+    <script defer src="js/app.js?v=41"></script>
+  </body>
+</html>
